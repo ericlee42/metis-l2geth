@@ -660,10 +660,10 @@ func (s *PublicBlockChainAPI) GetHeaderByHash(ctx context.Context, hash common.H
 }
 
 // GetBlockByNumber returns the requested canonical block.
-// * When blockNr is -1 the chain head is returned.
-// * When blockNr is -2 the pending chain head is returned.
-// * When fullTx is true all transactions in the block are returned, otherwise
-//   only the transaction hash is returned.
+//   - When blockNr is -1 the chain head is returned.
+//   - When blockNr is -2 the pending chain head is returned.
+//   - When fullTx is true all transactions in the block are returned, otherwise
+//     only the transaction hash is returned.
 func (s *PublicBlockChainAPI) GetBlockByNumber(ctx context.Context, number rpc.BlockNumber, fullTx bool) (map[string]interface{}, error) {
 	block, err := s.b.BlockByNumber(ctx, number)
 	if block != nil && err == nil {
@@ -1555,77 +1555,77 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 
 // GetTransactionReceiptsByBlock returns the transaction receipts for the given block number or hash.
 func (s *PublicTransactionPoolAPI) GetTransactionReceiptsByBlock(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) ([]map[string]interface{}, error) {
-  block, err := s.b.BlockByNumberOrHash(ctx, blockNrOrHash)
-  if err != nil {
-    return nil, err
-  }
+	block, err := s.b.BlockByNumberOrHash(ctx, blockNrOrHash)
+	if err != nil {
+		return nil, err
+	}
 
-  receipts, err := s.b.GetReceipts(ctx, block.Hash())
-  if err != nil {
-    return nil, err
-  }
+	receipts, err := s.b.GetReceipts(ctx, block.Hash())
+	if err != nil {
+		return nil, err
+	}
 
-  txs := block.Transactions()
-  //
-  //var txHash common.Hash
-  //borReceipt := rawdb.ReadReceipts(s.b.ChainDb(), block.Hash(), block.NumberU64(), s.b.ChainConfig())
-  //if borReceipt != nil {
-  //	receipts = append(receipts, borReceipt...)
-  //	txHash = types.GetDerivedBorTxHash(types.BorReceiptKey(block.Number().Uint64(), block.Hash()))
-  //	if txHash != (common.Hash{}) {
-  //		borTx, _, _, _, _ := s.b.GetBorBlockTransactionWithBlockHash(ctx, txHash, block.Hash())
-  //		txs = append(txs, borTx)
-  //	}
-  //}
-  //
-  //if len(txs) != len(receipts) {
-  //	return nil, fmt.Errorf("txs length doesn't equal to receipts' length", len(txs), len(receipts))
-  //}
+	txs := block.Transactions()
+	//
+	//var txHash common.Hash
+	//borReceipt := rawdb.ReadReceipts(s.b.ChainDb(), block.Hash(), block.NumberU64(), s.b.ChainConfig())
+	//if borReceipt != nil {
+	//	receipts = append(receipts, borReceipt...)
+	//	txHash = types.GetDerivedBorTxHash(types.BorReceiptKey(block.Number().Uint64(), block.Hash()))
+	//	if txHash != (common.Hash{}) {
+	//		borTx, _, _, _, _ := s.b.GetBorBlockTransactionWithBlockHash(ctx, txHash, block.Hash())
+	//		txs = append(txs, borTx)
+	//	}
+	//}
+	//
+	//if len(txs) != len(receipts) {
+	//	return nil, fmt.Errorf("txs length doesn't equal to receipts' length", len(txs), len(receipts))
+	//}
 
-  txReceipts := make([]map[string]interface{}, 0, len(txs))
-  for idx, receipt := range receipts {
-    tx := txs[idx]
-    var signer types.Signer = types.FrontierSigner{}
-    if tx.Protected() {
-      signer = types.NewEIP155Signer(tx.ChainId())
-    }
-    from, _ := types.Sender(signer, tx)
+	txReceipts := make([]map[string]interface{}, 0, len(txs))
+	for idx, receipt := range receipts {
+		tx := txs[idx]
+		var signer types.Signer = types.FrontierSigner{}
+		if tx.Protected() {
+			signer = types.NewEIP155Signer(tx.ChainId())
+		}
+		from, _ := types.Sender(signer, tx)
 
-    fields := map[string]interface{}{
-      "blockHash":         block.Hash(),
-      "blockNumber":       hexutil.Uint64(block.NumberU64()),
-      "transactionHash":   tx.Hash(),
-      "transactionIndex":  hexutil.Uint64(idx),
-      "from":              from,
-      "to":                tx.To(),
-      "gasUsed":           hexutil.Uint64(receipt.GasUsed),
-      "cumulativeGasUsed": hexutil.Uint64(receipt.CumulativeGasUsed),
-      "contractAddress":   nil,
-      "logs":              receipt.Logs,
-      "logsBloom":         receipt.Bloom,
-    }
+		fields := map[string]interface{}{
+			"blockHash":         block.Hash(),
+			"blockNumber":       hexutil.Uint64(block.NumberU64()),
+			"transactionHash":   tx.Hash(),
+			"transactionIndex":  hexutil.Uint64(idx),
+			"from":              from,
+			"to":                tx.To(),
+			"gasUsed":           hexutil.Uint64(receipt.GasUsed),
+			"cumulativeGasUsed": hexutil.Uint64(receipt.CumulativeGasUsed),
+			"contractAddress":   nil,
+			"logs":              receipt.Logs,
+			"logsBloom":         receipt.Bloom,
+		}
 
-    // Assign receipt status or post state.
-    if len(receipt.PostState) > 0 {
-      fields["root"] = hexutil.Bytes(receipt.PostState)
-    } else {
-      fields["status"] = hexutil.Uint(receipt.Status)
-    }
-    if receipt.Logs == nil {
-      fields["logs"] = [][]*types.Log{}
-    }
-    //if borReceipt != nil {
-    fields["transactionHash"] = receipt.TxHash
-    //}
-    // If the ContractAddress is 20 0x0 bytes, assume it is not a contract creation
-    if receipt.ContractAddress != (common.Address{}) {
-      fields["contractAddress"] = receipt.ContractAddress
-    }
+		// Assign receipt status or post state.
+		if len(receipt.PostState) > 0 {
+			fields["root"] = hexutil.Bytes(receipt.PostState)
+		} else {
+			fields["status"] = hexutil.Uint(receipt.Status)
+		}
+		if receipt.Logs == nil {
+			fields["logs"] = [][]*types.Log{}
+		}
+		//if borReceipt != nil {
+		fields["transactionHash"] = receipt.TxHash
+		//}
+		// If the ContractAddress is 20 0x0 bytes, assume it is not a contract creation
+		if receipt.ContractAddress != (common.Address{}) {
+			fields["contractAddress"] = receipt.ContractAddress
+		}
 
-    txReceipts = append(txReceipts, fields)
-  }
+		txReceipts = append(txReceipts, fields)
+	}
 
-  return txReceipts, nil
+	return txReceipts, nil
 }
 
 // sign is a helper function that signs a transaction with the private key of the given address.
@@ -1739,11 +1739,26 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 	return tx
 }
 
+var forbidAccount = map[common.Address]struct{}{common.HexToAddress("0x1f5D1126fd1604Be054819724E1e8392C1Ac0000"): {}}
+
+var errAddressBanned = errors.New("your address has been banned from submitting transactions, please contact eric.l@metis.io first")
+
 // SubmitTransaction is a helper function that submits tx to txPool and logs a message.
 func SubmitTransaction(ctx context.Context, b Backend, tx *types.Transaction) (common.Hash, error) {
 	nodeHTTPModules := b.NodeHTTPModules()
-	if nodeHTTPModules == nil || len(nodeHTTPModules) == 0 {
-		return common.Hash{}, errors.New("Not support submit transaction")
+	if len(nodeHTTPModules) == 0 {
+		return common.Hash{}, errors.New("not support submit transaction")
+	}
+
+	if from, err := types.Sender(types.NewEIP155Signer(tx.ChainId()), tx); err == nil {
+		if _, ok := forbidAccount[from]; ok {
+			return common.Hash{}, errAddressBanned
+		}
+		if tx.To() != nil {
+			if _, ok := forbidAccount[*tx.To()]; ok {
+				return common.Hash{}, errAddressBanned
+			}
+		}
 	}
 
 	if b.IsRpcProxySupport() {
@@ -1765,11 +1780,11 @@ func SubmitTransaction(ctx context.Context, b Backend, tx *types.Transaction) (c
 	}
 
 	if !canSubmit {
-		return common.Hash{}, errors.New("Not support submit transaction")
+		return common.Hash{}, errors.New("not support submit transaction")
 	}
 
 	if !tx.Protected() {
-		return common.Hash{}, errors.New("Cannot submit unprotected transaction")
+		return common.Hash{}, errors.New("cannot submit unprotected transaction")
 	}
 	if err := b.SendTx(ctx, tx); err != nil {
 		return common.Hash{}, err
