@@ -297,10 +297,7 @@ func (tx *Transaction) Hash() common.Hash {
 	if hash := tx.hash.Load(); hash != nil {
 		return hash.(common.Hash)
 	}
-	tmpL2tx := tx.l2tx
-	tx.l2tx = 2
-	v := rlpHash(tx)
-	tx.l2tx = tmpL2tx
+	v := rlpHash(&tx.data)
 	tx.hash.Store(v)
 	return v
 }
