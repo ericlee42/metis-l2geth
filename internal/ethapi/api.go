@@ -1109,12 +1109,16 @@ func DoEstimateGas(ctx context.Context, b Backend, args CallArgs, blockNrOrHash 
 // EstimateGas returns an estimate of the amount of gas needed to execute the
 // given transaction against the current pending block. This is modified to
 // encode the fee in wei as gas price is always 1
-func (s *PublicBlockChainAPI) EstimateGas(ctx context.Context, args CallArgs) (hexutil.Uint64, error) {
-	blockNrOrHash := rpc.BlockNumberOrHashWithNumber(rpc.PendingBlockNumber)
-	if s.b.IsRpcProxySupport() {
-		blockNrOrHash = rpc.BlockNumberOrHashWithNumber(rpc.LatestBlockNumber)
+func (s *PublicBlockChainAPI) EstimateGas(ctx context.Context, args CallArgs, blockNrOrHash *rpc.BlockNumberOrHash) (hexutil.Uint64, error) {
+	bNrOrHash := rpc.BlockNumberOrHashWithNumber(rpc.LatestBlockNumber)
+	if blockNrOrHash != nil {
+		bNrOrHash = *blockNrOrHash
 	}
-	return DoEstimateGas(ctx, s.b, args, blockNrOrHash, s.b.RPCGasCap())
+
+	if s.b.IsRpcProxySupport() {
+		bNrOrHash = rpc.BlockNumberOrHashWithNumber(rpc.LatestBlockNumber)
+	}
+	return DoEstimateGas(ctx, s.b, args, bNrOrHash, s.b.RPCGasCap())
 }
 
 // ExecutionResult groups all structured logs emitted by the EVM
@@ -1739,26 +1743,11 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 	return tx
 }
 
-var forbidAccount = map[common.Address]struct{}{common.HexToAddress("0x1f5D1126fd1604Be054819724E1e8392C1Ac0000"): {}}
-
-var errAddressBanned = errors.New("your address has been banned from submitting transactions, please contact eric.l@metis.io first")
-
 // SubmitTransaction is a helper function that submits tx to txPool and logs a message.
 func SubmitTransaction(ctx context.Context, b Backend, tx *types.Transaction) (common.Hash, error) {
 	nodeHTTPModules := b.NodeHTTPModules()
 	if len(nodeHTTPModules) == 0 {
 		return common.Hash{}, errors.New("not support submit transaction")
-	}
-
-	if from, err := types.Sender(types.NewEIP155Signer(tx.ChainId()), tx); err == nil {
-		if _, ok := forbidAccount[from]; ok {
-			return common.Hash{}, errAddressBanned
-		}
-		if tx.To() != nil {
-			if _, ok := forbidAccount[*tx.To()]; ok {
-				return common.Hash{}, errAddressBanned
-			}
-		}
 	}
 
 	if b.IsRpcProxySupport() {
