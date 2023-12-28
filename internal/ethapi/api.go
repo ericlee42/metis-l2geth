@@ -801,6 +801,7 @@ type CallArgs struct {
 	GasPrice *hexutil.Big    `json:"gasPrice"`
 	Value    *hexutil.Big    `json:"value"`
 	Data     *hexutil.Bytes  `json:"data"`
+	Input    *hexutil.Bytes  `json:"input"`
 }
 
 // account indicates the overriding fields of account during the execution of
@@ -887,6 +888,8 @@ func DoCall(ctx context.Context, b Backend, args CallArgs, blockNrOrHash rpc.Blo
 	var data []byte
 	if args.Data != nil {
 		data = []byte(*args.Data)
+	} else if args.Input != nil {
+		data = []byte(*args.Input)
 	}
 
 	// Currently, the blocknumber and timestamp actually refer to the L1BlockNumber and L1Timestamp
